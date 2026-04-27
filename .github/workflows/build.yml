@@ -83,21 +83,21 @@ jobs:
           TAG="${GITHUB_REF#refs/tags/}"
           SRC_URL="https://github.com/${REPO}/releases/download/${TAG}/${{ steps.zip.outputs.zip }}"
 
-          # Drop any existing entry for this version (prevents duplicates when
-          # re-tagging or when a placeholder entry was hand-written), then
-          # prepend the freshly-built one so newest is first.
+          # Drop any existing entries for this version, then prepend two fresh
+          # entries — one targetAbi 10.11.0.0, one 10.10.0.0 — pointing at the
+          # same release zip. Jellyfin 10.11 catalog visibility was unreliable
+          # with only a 10.10.0.0 entry (cache or filter quirk); having both
+          # makes the plugin appear cleanly on either server version.
           jq --arg v "${{ steps.ver.outputs.num }}" \
              --arg cs "${{ steps.zip.outputs.checksum }}" \
              --arg ts "$TIMESTAMP" \
              --arg src "$SRC_URL" \
-             '.[0].versions = ([{
-                version: $v,
-                changelog: ("Release " + $v),
-                targetAbi: "10.10.0.0",
-                sourceUrl: $src,
-                checksum: $cs,
-                timestamp: $ts
-              }] + ([.[0].versions[] | select(.version != $v)]))' manifest.json > manifest.json.new
+             '.[0].versions = ([
+                {version: $v, changelog: ("Release " + $v), targetAbi: "10.11.0.0",
+                 sourceUrl: $src, checksum: $cs, timestamp: $ts},
+                {version: $v, changelog: ("Release " + $v), targetAbi: "10.10.0.0",
+                 sourceUrl: $src, checksum: $cs, timestamp: $ts}
+              ] + ([.[0].versions[] | select(.version != $v)]))' manifest.json > manifest.json.new
           mv manifest.json.new manifest.json
 
           git config user.name "github-actions[bot]"
