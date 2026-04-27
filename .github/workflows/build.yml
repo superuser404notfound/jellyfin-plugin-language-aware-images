@@ -1,0 +1,104 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*.*.*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Publish
+        run: dotnet publish -c Release -o ./publish
+
+      - name: Stage release artifacts
+        run: |
+          mkdir -p ./out
+          cp ./publish/Jellyfin.Plugin.LanguageAwareImages.dll ./out/
+          cp ./publish/TMDbLib.dll ./out/
+          cp ./meta.json ./out/
+
+      - name: Determine version
+        id: ver
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            VERSION="${GITHUB_REF#refs/tags/v}"
+          else
+            VERSION="0.0.0-dev+${GITHUB_SHA::7}"
+          fi
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          # Normalised numeric form for manifest/meta (strip any pre-release suffix)
+          NUM_VERSION="${VERSION%%-*}"
+          # Pad to four parts (manifest/meta want X.Y.Z.W)
+          IFS=. read -r a b c d <<< "$NUM_VERSION"
+          echo "num=${a:-0}.${b:-0}.${c:-0}.${d:-0}" >> "$GITHUB_OUTPUT"
+
+      - name: Zip artifacts
+        id: zip
+        run: |
+          ZIP_NAME="language-aware-images_${{ steps.ver.outputs.num }}.zip"
+          (cd ./out && zip -r "../${ZIP_NAME}" .)
+          CHECKSUM="$(md5 -q "${ZIP_NAME}" 2>/dev/null || md5sum "${ZIP_NAME}" | awk '{print $1}')"
+          echo "zip=${ZIP_NAME}" >> "$GITHUB_OUTPUT"
+          echo "checksum=${CHECKSUM}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload zip as workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: plugin-zip
+          path: ${{ steps.zip.outputs.zip }}
+
+      - name: Create GitHub Release (tag pushes only)
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${GITHUB_REF#refs/tags/}" \
+            "${{ steps.zip.outputs.zip }}" \
+            --title "${GITHUB_REF#refs/tags/}" \
+            --notes "Release ${{ steps.ver.outputs.version }}"
+
+      - name: Update manifest.json (tag pushes only)
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TIMESTAMP="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          REPO="${GITHUB_REPOSITORY}"
+          TAG="${GITHUB_REF#refs/tags/}"
+          SRC_URL="https://github.com/${REPO}/releases/download/${TAG}/${{ steps.zip.outputs.zip }}"
+
+          jq --arg v "${{ steps.ver.outputs.num }}" \
+             --arg cs "${{ steps.zip.outputs.checksum }}" \
+             --arg ts "$TIMESTAMP" \
+             --arg src "$SRC_URL" \
+             '.[0].versions = ([{
+                version: $v,
+                changelog: ("Release " + $v),
+                targetAbi: "10.10.0.0",
+                sourceUrl: $src,
+                checksum: $cs,
+                timestamp: $ts
+              }] + .[0].versions)' manifest.json > manifest.json.new
+          mv manifest.json.new manifest.json
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add manifest.json
+          git commit -m "chore: publish ${TAG} to manifest [skip ci]"
+          git push origin HEAD:main

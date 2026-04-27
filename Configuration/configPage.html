@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Language-Aware Images</title>
+</head>
+<body>
+<div id="LanguageAwareImagesConfigPage"
+     data-role="page"
+     class="page type-interior pluginConfigurationPage"
+     data-require="emby-input,emby-button,emby-checkbox,emby-select">
+    <div data-role="content">
+        <div class="content-primary">
+            <form id="LanguageAwareImagesConfigForm">
+                <div class="verticalSection">
+                    <h2 class="sectionTitle">Language-Aware Images</h2>
+                    <p>Replaces the built-in TMDB image provider. Images are filtered by language
+                       and sorted by <code>vote_count</code> within each language bucket — matching
+                       TMDB's own UI sort order.</p>
+                </div>
+
+                <div class="inputContainer">
+                    <label class="inputLabel inputLabelUnfocused" for="PreferredLanguage">Preferred language (ISO 639-1)</label>
+                    <input is="emby-input" type="text" id="PreferredLanguage" required maxlength="2" />
+                    <div class="fieldDescription">e.g. <code>de</code>, <code>fr</code>, <code>es</code>.</div>
+                </div>
+
+                <div class="inputContainer">
+                    <label class="inputLabel inputLabelUnfocused" for="FallbackLanguage">Fallback language (ISO 639-1)</label>
+                    <input is="emby-input" type="text" id="FallbackLanguage" required maxlength="2" />
+                    <div class="fieldDescription">Used when the preferred language has no images. Usually <code>en</code>.</div>
+                </div>
+
+                <div class="checkboxContainer checkboxContainer-withDescription">
+                    <label>
+                        <input is="emby-checkbox" type="checkbox" id="IncludeNoLanguage" />
+                        <span>Include textless (no-language) images as last resort</span>
+                    </label>
+                    <div class="fieldDescription checkboxFieldDescription">
+                        Useful for logos. For posters, leave off so you don't get unlocalized art.
+                    </div>
+                </div>
+
+                <div class="inputContainer">
+                    <label class="inputLabel inputLabelUnfocused" for="TmdbApiKey">TMDB API key (optional)</label>
+                    <input is="emby-input" type="text" id="TmdbApiKey" />
+                    <div class="fieldDescription">
+                        Leave empty to use Jellyfin's bundled key. Bring your own to avoid sharing rate limits.
+                    </div>
+                </div>
+
+                <div>
+                    <button is="emby-button" type="submit" class="raised button-submit block">
+                        <span>Save</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script type="text/javascript">
+        (function () {
+            var pluginId = "08d643db-becc-42e6-aef9-6c677036ddd5";
+
+            document.querySelector('#LanguageAwareImagesConfigPage')
+                .addEventListener('pageshow', function () {
+                    Dashboard.showLoadingMsg();
+                    ApiClient.getPluginConfiguration(pluginId).then(function (config) {
+                        document.querySelector('#PreferredLanguage').value = config.PreferredLanguage || 'de';
+                        document.querySelector('#FallbackLanguage').value = config.FallbackLanguage || 'en';
+                        document.querySelector('#IncludeNoLanguage').checked = !!config.IncludeNoLanguage;
+                        document.querySelector('#TmdbApiKey').value = config.TmdbApiKey || '';
+                        Dashboard.hideLoadingMsg();
+                    });
+                });
+
+            document.querySelector('#LanguageAwareImagesConfigForm')
+                .addEventListener('submit', function (e) {
+                    e.preventDefault();
+                    Dashboard.showLoadingMsg();
+                    ApiClient.getPluginConfiguration(pluginId).then(function (config) {
+                        config.PreferredLanguage = document.querySelector('#PreferredLanguage').value.trim().toLowerCase();
+                        config.FallbackLanguage = document.querySelector('#FallbackLanguage').value.trim().toLowerCase();
+                        config.IncludeNoLanguage = document.querySelector('#IncludeNoLanguage').checked;
+                        config.TmdbApiKey = document.querySelector('#TmdbApiKey').value.trim();
+                        ApiClient.updatePluginConfiguration(pluginId, config).then(function (result) {
+                            Dashboard.processPluginConfigurationUpdateResult(result);
+                        });
+                    });
+                    return false;
+                });
+        })();
+    </script>
+</div>
+</body>
+</html>

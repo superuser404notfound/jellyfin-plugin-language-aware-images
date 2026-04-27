@@ -1,0 +1,21 @@
+[
+  {
+    "guid": "08d643db-becc-42e6-aef9-6c677036ddd5",
+    "name": "Language-Aware Images",
+    "description": "TMDB images filtered by library language and ranked by vote_count.",
+    "overview": "Replaces the built-in TMDB image provider with one that strictly respects PreferredLanguage and sorts within each language bucket the way TMDB's own /images UI does (vote_count DESC, vote_average DESC). Fixes jellyfin/jellyfin#8925 and #9878.",
+    "owner": "superuser404notfound",
+    "category": "Metadata",
+    "imageUrl": "",
+    "versions": [
+      {
+        "version": "0.1.0.0",
+        "changelog": "Initial release.",
+        "targetAbi": "10.10.0.0",
+        "sourceUrl": "https://github.com/superuser404notfound/Jellyfin.Plugin.LanguageAwareImages/releases/download/v0.1.0/language-aware-images_0.1.0.0.zip",
+        "checksum": "0000000000000000000000000000000000000000",
+        "timestamp": "1970-01-01T00:00:00Z"
+      }
+    ]
+  }
+]
