@@ -13,15 +13,20 @@
             <form id="LanguageAwareImagesConfigForm">
                 <div class="verticalSection">
                     <h2 class="sectionTitle">Language-Aware Images</h2>
-                    <p>Replaces the built-in TMDB image provider. Images are filtered by language
-                       and sorted by <code>vote_count</code> within each language bucket — matching
-                       TMDB's own UI sort order.</p>
+                    <p>Replaces the built-in TMDB image provider. By default the plugin uses each
+                       library's configured metadata language, then sorts images by
+                       <code>vote_count</code> within that language bucket — matching TMDB's own
+                       UI sort order.</p>
                 </div>
 
                 <div class="inputContainer">
-                    <label class="inputLabel inputLabelUnfocused" for="PreferredLanguage">Preferred language (ISO 639-1)</label>
-                    <input is="emby-input" type="text" id="PreferredLanguage" required maxlength="2" />
-                    <div class="fieldDescription">e.g. <code>de</code>, <code>fr</code>, <code>es</code>.</div>
+                    <label class="inputLabel inputLabelUnfocused" for="PreferredLanguageOverride">Preferred language override (ISO 639-1)</label>
+                    <input is="emby-input" type="text" id="PreferredLanguageOverride" maxlength="2" />
+                    <div class="fieldDescription">
+                        Leave empty (recommended) to use each library's metadata language.
+                        Set a 2-letter code like <code>de</code> or <code>fr</code> to force
+                        that language for every library, ignoring per-library settings.
+                    </div>
                 </div>
 
                 <div class="inputContainer">
@@ -65,7 +70,7 @@
                 .addEventListener('pageshow', function () {
                     Dashboard.showLoadingMsg();
                     ApiClient.getPluginConfiguration(pluginId).then(function (config) {
-                        document.querySelector('#PreferredLanguage').value = config.PreferredLanguage || 'de';
+                        document.querySelector('#PreferredLanguageOverride').value = config.PreferredLanguageOverride || '';
                         document.querySelector('#FallbackLanguage').value = config.FallbackLanguage || 'en';
                         document.querySelector('#IncludeNoLanguage').checked = !!config.IncludeNoLanguage;
                         document.querySelector('#TmdbApiKey').value = config.TmdbApiKey || '';
@@ -78,7 +83,7 @@
                     e.preventDefault();
                     Dashboard.showLoadingMsg();
                     ApiClient.getPluginConfiguration(pluginId).then(function (config) {
-                        config.PreferredLanguage = document.querySelector('#PreferredLanguage').value.trim().toLowerCase();
+                        config.PreferredLanguageOverride = document.querySelector('#PreferredLanguageOverride').value.trim().toLowerCase();
                         config.FallbackLanguage = document.querySelector('#FallbackLanguage').value.trim().toLowerCase();
                         config.IncludeNoLanguage = document.querySelector('#IncludeNoLanguage').checked;
                         config.TmdbApiKey = document.querySelector('#TmdbApiKey').value.trim();

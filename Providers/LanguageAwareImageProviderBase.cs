@@ -1,4 +1,5 @@
 using MediaBrowser.Common.Net;
+using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Dto;
 using MediaBrowser.Model.Entities;
@@ -41,43 +42,77 @@ public abstract class LanguageAwareImageProviderBase : IHasOrder
         return new TMDbClient(key);
     }
 
+    // Resolves the effective preferred language for a given item:
+    // 1. If the user set a global PreferredLanguageOverride, that wins.
+    // 2. Otherwise, ask the item what its library/parent language is.
+    // 3. Normalise to a 2-letter ISO 639-1 code (Jellyfin sometimes returns
+    //    "en-US" style; TMDB filters expect plain "en").
+    // Returns empty string if nothing is configured anywhere.
+    protected static string GetEffectivePreferredLanguage(BaseItem item)
+    {
+        var lang = !string.IsNullOrWhiteSpace(Config.PreferredLanguageOverride)
+            ? Config.PreferredLanguageOverride
+            : item.GetPreferredMetadataLanguage();
+
+        if (string.IsNullOrWhiteSpace(lang))
+        {
+            return string.Empty;
+        }
+
+        // "en-US" -> "en", "de-DE" -> "de"
+        var dash = lang.IndexOf('-');
+        return (dash > 0 ? lang[..dash] : lang).ToLowerInvariant();
+    }
+
     // TMDB's `include_image_language` accepts a comma list. The literal token
     // "null" pulls textless images. Order in the list does not affect ranking;
     // we apply our own bucket sort below.
-    protected string BuildIncludeLanguageParam()
+    protected string BuildIncludeLanguageParam(string preferredLanguage)
     {
-        var parts = new List<string> { Config.PreferredLanguage, Config.FallbackLanguage };
+        var parts = new List<string>();
+        if (!string.IsNullOrWhiteSpace(preferredLanguage))
+        {
+            parts.Add(preferredLanguage);
+        }
+
+        if (!string.IsNullOrWhiteSpace(Config.FallbackLanguage))
+        {
+            parts.Add(Config.FallbackLanguage);
+        }
+
         if (Config.IncludeNoLanguage)
         {
             parts.Add("null");
         }
 
-        return string.Join(",", parts.Where(p => !string.IsNullOrWhiteSpace(p)).Distinct());
+        return string.Join(",", parts.Distinct());
     }
 
     // Heart of the plugin: filter by language bucket, then ORDER BY vote_count DESC,
     // vote_average DESC — the same ordering TMDB's own /images UI uses.
     protected IEnumerable<RemoteImageInfo> RankAndMap(
         IEnumerable<ImageData>? images,
-        ImageType type)
+        ImageType type,
+        string preferredLanguage)
     {
         if (images is null)
         {
             return Array.Empty<RemoteImageInfo>();
         }
 
-        var preferred = Config.PreferredLanguage;
         var fallback = Config.FallbackLanguage;
         var includeNull = Config.IncludeNoLanguage;
 
         int Rank(string? iso)
         {
-            if (string.Equals(iso, preferred, StringComparison.OrdinalIgnoreCase))
+            if (!string.IsNullOrEmpty(preferredLanguage)
+                && string.Equals(iso, preferredLanguage, StringComparison.OrdinalIgnoreCase))
             {
                 return 0;
             }
 
-            if (string.Equals(iso, fallback, StringComparison.OrdinalIgnoreCase))
+            if (!string.IsNullOrEmpty(fallback)
+                && string.Equals(iso, fallback, StringComparison.OrdinalIgnoreCase))
             {
                 return 1;
             }

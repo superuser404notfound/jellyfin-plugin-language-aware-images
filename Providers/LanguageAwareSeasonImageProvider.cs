@@ -34,16 +34,21 @@ public class LanguageAwareSeasonImageProvider : LanguageAwareImageProviderBase, 
             return Array.Empty<RemoteImageInfo>();
         }
 
+        var preferredLanguage = GetEffectivePreferredLanguage(item);
+        var apiLanguage = string.IsNullOrEmpty(preferredLanguage)
+            ? Config.FallbackLanguage
+            : preferredLanguage;
+
         var client = CreateClient();
         var images = await client.GetTvSeasonImagesAsync(
             seriesTmdbId,
             season.IndexNumber.Value,
-            language: Config.PreferredLanguage,
-            includeImageLanguage: BuildIncludeLanguageParam(),
+            language: apiLanguage,
+            includeImageLanguage: BuildIncludeLanguageParam(preferredLanguage),
             cancellationToken: cancellationToken).ConfigureAwait(false);
 
         return images is null
             ? Array.Empty<RemoteImageInfo>()
-            : RankAndMap(images.Posters, ImageType.Primary);
+            : RankAndMap(images.Posters, ImageType.Primary, preferredLanguage);
     }
 }

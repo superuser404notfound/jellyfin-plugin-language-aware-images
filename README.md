@@ -67,12 +67,19 @@ Requires .NET 8 SDK.
 
 *Admin → Plugins → Language-Aware Images*:
 
-| Field                | Default | Notes                                                            |
-| -------------------- | :-----: | ---------------------------------------------------------------- |
-| `PreferredLanguage`  |  `de`   | ISO 639-1.                                                       |
-| `FallbackLanguage`   |  `en`   | Used when preferred has no images.                               |
-| `IncludeNoLanguage`  | `false` | Allow textless images as last resort. Useful for logos.          |
-| `TmdbApiKey`         | empty   | Bring your own TMDB key. Empty = uses Jellyfin's bundled key.    |
+| Field                       | Default | Notes                                                                         |
+| --------------------------- | :-----: | ----------------------------------------------------------------------------- |
+| `PreferredLanguageOverride` | empty   | Empty = use each library's metadata language. Set e.g. `de` to force globally. |
+| `FallbackLanguage`          |  `en`   | Used when preferred has no images.                                            |
+| `IncludeNoLanguage`         | `false` | Allow textless images as last resort. Useful for logos.                       |
+| `TmdbApiKey`                | empty   | Bring your own TMDB key. Empty = uses Jellyfin's bundled key.                 |
+
+By default the plugin reads each item's `BaseItem.GetPreferredMetadataLanguage()`
+— that's the same chain Jellyfin uses everywhere else (item override → parent
+hierarchy → library settings → server default). So a German library and an
+English library can coexist on the same server and each gets language-matched
+posters automatically. Set `PreferredLanguageOverride` only if you want to
+ignore those library settings for every fetch.
 
 > **Important:** After installing, go to *Admin → Library → (your library) → Image Fetchers*
 > and drag **Language-Aware TMDB Images** to the top. Jellyfin queries fetchers
