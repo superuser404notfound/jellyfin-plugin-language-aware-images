@@ -83,6 +83,9 @@ jobs:
           TAG="${GITHUB_REF#refs/tags/}"
           SRC_URL="https://github.com/${REPO}/releases/download/${TAG}/${{ steps.zip.outputs.zip }}"
 
+          # Drop any existing entry for this version (prevents duplicates when
+          # re-tagging or when a placeholder entry was hand-written), then
+          # prepend the freshly-built one so newest is first.
           jq --arg v "${{ steps.ver.outputs.num }}" \
              --arg cs "${{ steps.zip.outputs.checksum }}" \
              --arg ts "$TIMESTAMP" \
@@ -94,7 +97,7 @@ jobs:
                 sourceUrl: $src,
                 checksum: $cs,
                 timestamp: $ts
-              }] + .[0].versions)' manifest.json > manifest.json.new
+              }] + ([.[0].versions[] | select(.version != $v)]))' manifest.json > manifest.json.new
           mv manifest.json.new manifest.json
 
           git config user.name "github-actions[bot]"
