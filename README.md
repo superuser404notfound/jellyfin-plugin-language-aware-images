@@ -1,41 +1,12 @@
 # Jellyfin.Plugin.LanguageAwareImages
 
-A drop-in replacement for Jellyfin's built-in TMDB image provider that
-**strictly respects the library language** and **sorts images by `vote_count`** —
-the same ordering TMDB's own `/images` UI uses.
-
-## The problem
-
-Two long-standing complaints about Jellyfin's bundled TMDB image provider:
-
-- **[jellyfin/jellyfin#8925](https://github.com/jellyfin/jellyfin/issues/8925)** —
-  TMDB posters ignore the library/preferred language. A German-language library
-  receives English posters anyway.
-- **[jellyfin/jellyfin#9878](https://github.com/jellyfin/jellyfin/issues/9878)** —
-  When language-matched posters exist, Jellyfin still picks textless ones and
-  ignores TMDB's vote-count signal.
-
-Existing third-party plugins partly address language matching but **none rank
-images the way TMDB's own UI does**. Visit
-`https://www.themoviedb.org/movie/<id>/images/posters?image_language=de` —
-the order you see there is `vote_count DESC, vote_average DESC` within each
-language bucket. That's what this plugin gives you.
-
-## How it compares
-
-| Behavior                                     | Built-in TMDB | ArtworkMultiSource | **LanguageAwareImages** |
-| -------------------------------------------- | :-----------: | :----------------: | :---------------------: |
-| Filters by preferred / fallback language     |   partial     |        yes         |          **yes**        |
-| Excludes textless by default                 |     no        |     configurable   |          **yes**        |
-| Sorts within bucket by `vote_count`          |     no        |         no         |          **yes**        |
-| Matches TMDB UI ranking                      |     no        |         no         |          **yes**        |
-| Movies / Series / Seasons                    |     yes       |     yes (most)     |          **yes**        |
+A drop-in TMDB image provider for Jellyfin that respects each library's
+metadata language and ranks images by `vote_count` — the same order TMDB's
+own `/images` UI uses.
 
 ## Install
 
-### Via plugin repository (recommended)
-
-In Jellyfin: *Admin → Plugins → Repositories → +* and add:
+In Jellyfin: *Admin → Plugins → Repositories → +* and add
 
 ```
 https://raw.githubusercontent.com/superuser404notfound/Jellyfin.Plugin.LanguageAwareImages/main/manifest.json
@@ -43,72 +14,32 @@ https://raw.githubusercontent.com/superuser404notfound/Jellyfin.Plugin.LanguageA
 
 Then *Catalog → Metadata → Language-Aware Images → Install*. Restart the server.
 
-### Manual install
-
-1. Download `language-aware-images_<version>.zip` from
-   [Releases](https://github.com/superuser404notfound/Jellyfin.Plugin.LanguageAwareImages/releases).
-2. Extract into your Jellyfin `plugins/LanguageAwareImages/` directory:
-   - macOS (official installer): `~/Library/Application Support/jellyfin/plugins/LanguageAwareImages/`
-   - Linux (default): `~/.local/share/jellyfin/plugins/LanguageAwareImages/`
-   - Docker: `/config/plugins/LanguageAwareImages/`
-3. Restart Jellyfin.
-
-### Build from source
-
-```bash
-git clone https://github.com/superuser404notfound/Jellyfin.Plugin.LanguageAwareImages.git
-cd Jellyfin.Plugin.LanguageAwareImages
-./build.sh   # honors $JELLYFIN_PLUGIN_DIR; defaults to the macOS path
-```
-
-Requires .NET 8 SDK.
+> After install, go to *Admin → Library → (your library) → Image Fetchers* and
+> drag **Language-Aware TMDB Images** to the top — otherwise the built-in
+> provider still wins.
 
 ## Configuration
 
 *Admin → Plugins → Language-Aware Images*:
 
-| Field                       | Default | Notes                                                                         |
-| --------------------------- | :-----: | ----------------------------------------------------------------------------- |
+| Field                       | Default | Notes                                                                          |
+| --------------------------- | :-----: | ------------------------------------------------------------------------------ |
 | `PreferredLanguageOverride` | empty   | Empty = use each library's metadata language. Set e.g. `de` to force globally. |
-| `FallbackLanguage`          |  `en`   | Used when preferred has no images.                                            |
-| `IncludeNoLanguage`         | `false` | Allow textless images as last resort. Useful for logos.                       |
-| `TmdbApiKey`                | empty   | Bring your own TMDB key. Empty = uses Jellyfin's bundled key.                 |
+| `FallbackLanguage`          |  `en`   | Used when preferred has no images.                                             |
+| `IncludeNoLanguage`         | `false` | Allow textless images as last resort. Useful for logos.                        |
+| `TmdbApiKey`                | empty   | Bring your own TMDB key. Empty = uses Jellyfin's bundled key.                  |
 
-By default the plugin reads each item's `BaseItem.GetPreferredMetadataLanguage()`
-— that's the same chain Jellyfin uses everywhere else (item override → parent
-hierarchy → library settings → server default). So a German library and an
-English library can coexist on the same server and each gets language-matched
-posters automatically. Set `PreferredLanguageOverride` only if you want to
-ignore those library settings for every fetch.
+## Why
 
-> **Important:** After installing, go to *Admin → Library → (your library) → Image Fetchers*
-> and drag **Language-Aware TMDB Images** to the top. Jellyfin queries fetchers
-> in user-configured order; this plugin can only win if it runs first.
+Jellyfin's built-in TMDB image provider ignores the library language
+([#8925](https://github.com/jellyfin/jellyfin/issues/8925)) and prefers
+textless posters even when language-matched ones exist
+([#9878](https://github.com/jellyfin/jellyfin/issues/9878)).
 
-## How the ranking works
-
-For each `ImageType` (Primary / Backdrop / Logo, plus seasons → Primary only),
-the plugin:
-
-1. Fetches `/movie/<id>/images` (or the TV / season equivalent) from TMDB
-   with `include_image_language=de,en[,null]`.
-2. Filters out anything not in `{preferred, fallback, [null]}`.
-3. Sorts:
-
-   ```sql
-   ORDER BY language_bucket(preferred=0, fallback=1, null=2) ASC,
-            vote_count DESC,
-            vote_average DESC
-   ```
-
-4. Maps results to `RemoteImageInfo` and returns them — already sorted, with
-   `Order = -1` so it preempts Jellyfin's bundled provider.
+This plugin fixes both: filter by `iso_639_1`, then `ORDER BY vote_count DESC,
+vote_average DESC` within each language bucket — exactly what TMDB's site
+shows at `/movie/<id>/images/posters?image_language=de`.
 
 ## License
 
 GPL-3.0 (the plugin links against Jellyfin's GPL assemblies).
-
-## Acknowledgements
-
-- [TMDbLib](https://github.com/jellyfin/TMDbLib) — Jellyfin's fork of LordMike/TMDbLib.
-- The Movie Database (TMDB) for the data.
