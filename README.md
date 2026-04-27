@@ -30,7 +30,7 @@ Then *Catalog → Metadata → Language-Aware Images → Install*. Restart the s
 | `IncludeNoLanguageForPosters`    | `false` | Allow textless posters as last resort.                                         |
 | `IncludeNoLanguageForBackdrops`  | `true`  | Backdrops are usually language-agnostic anyway.                                |
 | `IncludeNoLanguageForLogos`      | `true`  | Most studio logos are designed without text.                                   |
-| `MinimumVoteCount`               |   `1`   | Drops unvalidated junk uploads. Set `0` to disable.                            |
+| `MinimumVoteCount`               |   `0`   | Drops images with fewer votes. `0` = keep everything (recommended).            |
 | `TmdbApiKey`                     | empty   | Bring your own TMDB key. Empty = uses Jellyfin's bundled key.                  |
 
 The bucket order — preferred → original (opt-in) → fallback → textless (opt-in

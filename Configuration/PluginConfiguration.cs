@@ -27,10 +27,12 @@ public class PluginConfiguration : BasePluginConfiguration
     // Princess Mononoke instead of being forced to the US-marketing version.
     public bool IncludeOriginalLanguage { get; set; } = false;
 
-    // Drops images with very few votes. TMDB lets anyone upload art; entries
-    // with 0 votes are usually unvalidated junk. Default 1 trims them without
-    // losing legitimate uploads.
-    public int MinimumVoteCount { get; set; } = 1;
+    // Drops images with fewer than this many TMDB votes. Default 0 = keep
+    // everything; a vote_count of 0 often just means "not voted on yet" rather
+    // than "junk", and language-matched images with no votes are still
+    // preferred over a fallback-language image. Bump to 1+ if you want to
+    // aggressively trim unvalidated uploads.
+    public int MinimumVoteCount { get; set; } = 0;
 
     public string TmdbApiKey { get; set; } = string.Empty;
 }

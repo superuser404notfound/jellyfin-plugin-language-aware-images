@@ -84,8 +84,11 @@
                         <input is="emby-input" type="number" id="MinimumVoteCount" min="0" step="1" />
                         <div class="fieldDescription">
                             Drops images with fewer than this many TMDB votes. Default
-                            <code>1</code> filters out unvalidated junk uploads. Set
-                            <code>0</code> to disable.
+                            <code>0</code> keeps everything — a vote count of 0 usually
+                            means "not voted on yet" rather than "junk", and you don't
+                            want to fall back to English just because the German poster
+                            hasn't been rated. Bump to <code>1</code>+ to aggressively
+                            trim unvalidated uploads.
                         </div>
                     </div>
                 </div>
@@ -125,7 +128,7 @@
                         document.querySelector('#IncludeNoLanguageForPosters').checked = !!config.IncludeNoLanguageForPosters;
                         document.querySelector('#IncludeNoLanguageForBackdrops').checked = config.IncludeNoLanguageForBackdrops !== false;
                         document.querySelector('#IncludeNoLanguageForLogos').checked = config.IncludeNoLanguageForLogos !== false;
-                        document.querySelector('#MinimumVoteCount').value = (config.MinimumVoteCount != null ? config.MinimumVoteCount : 1);
+                        document.querySelector('#MinimumVoteCount').value = (config.MinimumVoteCount != null ? config.MinimumVoteCount : 0);
                         document.querySelector('#TmdbApiKey').value = config.TmdbApiKey || '';
                         Dashboard.hideLoadingMsg();
                     });
