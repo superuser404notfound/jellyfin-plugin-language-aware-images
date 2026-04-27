@@ -1,4 +1,4 @@
-# Jellyfin.Plugin.LanguageAwareImages
+# Language-Aware Images
 
 A drop-in TMDB image provider for Jellyfin that gives you posters in your
 library's language with a clean fallback to English — and skips the textless
