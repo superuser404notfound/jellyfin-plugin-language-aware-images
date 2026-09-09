@@ -7,7 +7,7 @@
   "overview": "Drop-in replacement for the built-in TMDB image provider. Enforces a clean cascade: library language → English → (optional) textless. Within each bucket images are sorted by vote_count DESC like TMDB's own /images UI. Fixes jellyfin/jellyfin#9878 (built-in prefers textless over English fallback).",
   "targetAbi": "10.10.0.0",
   "framework": "net8.0",
-  "version": "0.9.0.0",
-  "changelog": "Adds per-image-type prefer-textless options (PreferNoLanguageForPosters/Backdrops/Logos, default off). When textless is allowed for a type you can now rank the no-language version above titled art instead of dead-last, which is what most people want for backdrops and logos. Also documents the image-picker trade-off (issue #3): images are tagged with the library metadata language and the Edit Images 'All languages' toggle has no effect, both by design so the exact bucket order survives Jellyfin's downstream sort.",
+  "version": "1.0.0.0",
+  "changelog": "Adds Jellyfin 12 support (issue #4). Each release now ships two builds from one source: X.Y.Z.0 targets Jellyfin 10.10/10.11 on net8.0, X.Y.Z.1 targets Jellyfin 12 on net10.0. Your server picks the right one automatically, so nothing changes for 10.10 users. Also fixes the within-bucket ordering when 'sort by votes' is off: Jellyfin 12 rounds the rating it sorts on to one decimal, which erased the old tiebreak, so it is now scaled to survive that rounding.",
   "imagePath": ""
 }

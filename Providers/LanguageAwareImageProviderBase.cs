@@ -292,9 +292,15 @@ public abstract class LanguageAwareImageProviderBase : IHasOrder
     // a higher value, so rank 0 sorts above rank 1 above ... regardless of vote
     // counts. Within a rank the value is identical, leaving Jellyfin's VoteCount
     // tiebreak to order by popularity (SortByVotes on). With SortByVotes off we
-    // add a small vote_average term so the within-bucket order is by rating
-    // instead; that term is below the 0.1 granularity some Jellyfin builds round
-    // CommunityRating to, so it degrades cleanly back to the VoteCount tiebreak.
+    // add a vote_average term so the within-bucket order is by rating instead.
+    //
+    // That term has to survive Jellyfin 12, which sorts on
+    // Math.Round(CommunityRating, 1) rather than the raw value, so anything finer
+    // than 0.1 is erased there. Scaling vote_average (0..10) by 1/10 puts it on
+    // exactly that grid: ten distinct within-bucket tiers on 12, full precision on
+    // 10.10, which does not round. The clamp to 9.4 caps the term at 0.94, which
+    // rounds to at most 0.9 and so stays strictly inside the bucket. Buckets are a
+    // whole 1.0 apart, so the term can never promote an image past its bucket.
     //
     // Cost: the picker shows these synthetic ratings instead of TMDB's, and every
     // image is labelled with the library language even when it is really a
@@ -311,7 +317,7 @@ public abstract class LanguageAwareImageProviderBase : IHasOrder
         double rating = maxRank + 1 - ranked.Rank;
         if (!Config.SortByVotes)
         {
-            rating += Math.Clamp(img.VoteAverage, 0, 9.99) / 100.0;
+            rating += Math.Clamp(img.VoteAverage, 0, 9.4) / 10.0;
         }
 
         return new RemoteImageInfo
