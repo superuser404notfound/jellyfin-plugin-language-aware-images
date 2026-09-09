@@ -9,6 +9,22 @@
     "imageUrl": "",
     "versions": [
       {
+        "version": "1.0.0.1",
+        "changelog": "Release 1.0.0.1",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://github.com/superuser404notfound/jellyfin-plugin-language-aware-images/releases/download/v1.0.0/language-aware-images_1.0.0.1.zip",
+        "checksum": "9f45d97fd7ee3a3084342f85823350bf",
+        "timestamp": "2026-09-09T04:48:26Z"
+      },
+      {
+        "version": "1.0.0.0",
+        "changelog": "Release 1.0.0.0",
+        "targetAbi": "10.10.0.0",
+        "sourceUrl": "https://github.com/superuser404notfound/jellyfin-plugin-language-aware-images/releases/download/v1.0.0/language-aware-images_1.0.0.0.zip",
+        "checksum": "abfc62f9ea5f73a999f58bfb00fc3915",
+        "timestamp": "2026-09-09T04:48:26Z"
+      },
+      {
         "version": "0.9.0.0",
         "changelog": "Release 0.9.0.0",
         "targetAbi": "10.10.0.0",
