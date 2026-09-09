@@ -15,23 +15,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup .NET 8
+      # net8.0 builds the Jellyfin 10.10/10.11 line, net10.0 the Jellyfin 12 line.
+      - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '8.0.x'
+          dotnet-version: |
+            8.0.x
+            10.0.x
 
       - name: Restore
         run: dotnet restore
-
-      - name: Publish
-        run: dotnet publish -c Release -o ./publish
-
-      - name: Stage release artifacts
-        run: |
-          mkdir -p ./out
-          cp ./publish/Jellyfin.Plugin.LanguageAwareImages.dll ./out/
-          cp ./publish/TMDbLib.dll ./out/
-          cp ./meta.json ./out/
 
       - name: Determine version
         id: ver
@@ -42,26 +35,64 @@ jobs:
             VERSION="0.0.0-dev+${GITHUB_SHA::7}"
           fi
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
-          # Normalised numeric form for manifest/meta (strip any pre-release suffix)
+
+          # Three-part release number. The fourth component is NOT taken from the
+          # tag: it is the server-line marker that the csproj assigns per target
+          # framework (see PluginRevision there).
           NUM_VERSION="${VERSION%%-*}"
-          # Pad to four parts (manifest/meta want X.Y.Z.W)
-          IFS=. read -r a b c d <<< "$NUM_VERSION"
-          echo "num=${a:-0}.${b:-0}.${c:-0}.${d:-0}" >> "$GITHUB_OUTPUT"
+          IFS=. read -r a b c _ <<< "$NUM_VERSION"
+          echo "base=${a:-0}.${b:-0}.${c:-0}" >> "$GITHUB_OUTPUT"
 
-      - name: Zip artifacts
-        id: zip
+      # The csproj is the single source of truth for the version. A tag that
+      # disagrees with it would publish artifacts whose assembly version and
+      # manifest entry differ, so fail loudly instead.
+      - name: Verify tag matches csproj PluginVersion (tag pushes only)
+        if: startsWith(github.ref, 'refs/tags/v')
         run: |
-          ZIP_NAME="language-aware-images_${{ steps.ver.outputs.num }}.zip"
-          (cd ./out && zip -r "../${ZIP_NAME}" .)
-          CHECKSUM="$(md5 -q "${ZIP_NAME}" 2>/dev/null || md5sum "${ZIP_NAME}" | awk '{print $1}')"
-          echo "zip=${ZIP_NAME}" >> "$GITHUB_OUTPUT"
-          echo "checksum=${CHECKSUM}" >> "$GITHUB_OUTPUT"
+          CSPROJ_VERSION="$(dotnet msbuild -getProperty:PluginVersion -p:TargetFramework=net8.0 -nologo)"
+          if [[ "${CSPROJ_VERSION}" != "${{ steps.ver.outputs.base }}" ]]; then
+            echo "::error::tag says ${{ steps.ver.outputs.base }} but csproj PluginVersion is ${CSPROJ_VERSION}"
+            exit 1
+          fi
 
-      - name: Upload zip as workflow artifact
+      - name: Build, stage and zip both server lines
+        run: |
+          BASE="${{ steps.ver.outputs.base }}"
+          echo '[]' > "${RUNNER_TEMP}/artifacts.json"
+
+          for TFM in net8.0 net10.0; do
+            # Keep the framework -> revision/ABI mapping in the csproj only.
+            PROPS="$(dotnet msbuild -getProperty:PluginRevision -getProperty:PluginTargetAbi \
+                       -p:TargetFramework="$TFM" -nologo)"
+            REV="$(jq -er .Properties.PluginRevision <<< "$PROPS")"
+            ABI="$(jq -er .Properties.PluginTargetAbi <<< "$PROPS")"
+            NUM="${BASE}.${REV}"
+
+            dotnet publish -c Release -f "$TFM" -o "./publish/$TFM"
+
+            mkdir -p "./out/$TFM"
+            cp "./publish/$TFM/Jellyfin.Plugin.LanguageAwareImages.dll" "./out/$TFM/"
+            cp "./publish/$TFM/TMDbLib.dll" "./out/$TFM/"
+            jq --arg v "$NUM" --arg abi "$ABI" --arg fw "$TFM" \
+               '.version = $v | .targetAbi = $abi | .framework = $fw' \
+               meta.json > "./out/$TFM/meta.json"
+
+            ZIP="language-aware-images_${NUM}.zip"
+            (cd "./out/$TFM" && zip -r "../../${ZIP}" .)
+            CHECKSUM="$(md5sum "${ZIP}" | awk '{print $1}')"
+            echo "built ${ZIP} (targetAbi ${ABI}, md5 ${CHECKSUM})"
+
+            jq --arg v "$NUM" --arg abi "$ABI" --arg zip "$ZIP" --arg cs "$CHECKSUM" \
+               '. += [{version: $v, targetAbi: $abi, zip: $zip, checksum: $cs}]' \
+               "${RUNNER_TEMP}/artifacts.json" > "${RUNNER_TEMP}/artifacts.json.new"
+            mv "${RUNNER_TEMP}/artifacts.json.new" "${RUNNER_TEMP}/artifacts.json"
+          done
+
+      - name: Upload zips as workflow artifact
         uses: actions/upload-artifact@v4
         with:
-          name: plugin-zip
-          path: ${{ steps.zip.outputs.zip }}
+          name: plugin-zips
+          path: language-aware-images_*.zip
 
       - name: Create GitHub Release (tag pushes only)
         if: startsWith(github.ref, 'refs/tags/v')
@@ -76,7 +107,7 @@ jobs:
           fi
 
           gh release create "${GITHUB_REF#refs/tags/}" \
-            "${{ steps.zip.outputs.zip }}" \
+            language-aware-images_*.zip \
             --title "${GITHUB_REF#refs/tags/}" \
             --notes-file /tmp/release-notes.md
 
@@ -88,7 +119,6 @@ jobs:
           TIMESTAMP="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           REPO="${GITHUB_REPOSITORY}"
           TAG="${GITHUB_REF#refs/tags/}"
-          SRC_URL="https://github.com/${REPO}/releases/download/${TAG}/${{ steps.zip.outputs.zip }}"
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -98,23 +128,28 @@ jobs:
           # build and our manifest push. We can't rebase a manifest edit
           # (they're guaranteed to conflict on the same JSON region), so each
           # retry hard-resets to origin/main and re-applies the jq mutation
-          # against the freshest state.
+          # against the freshest state. artifacts.json lives in RUNNER_TEMP so
+          # the reset can't take it with it.
           for attempt in 1 2 3; do
             git fetch origin main
             git reset --hard origin/main
 
-            jq --arg v "${{ steps.ver.outputs.num }}" \
-               --arg cs "${{ steps.zip.outputs.checksum }}" \
-               --arg ts "$TIMESTAMP" \
-               --arg src "$SRC_URL" \
-               '.[0].versions = ([{
-                  version: $v,
-                  changelog: ("Release " + $v),
-                  targetAbi: "10.10.0.0",
-                  sourceUrl: $src,
-                  checksum: $cs,
+            # One entry per server line, highest version first. Jellyfin keeps
+            # every entry whose targetAbi <= the server version and installs the
+            # highest, so both lines coexist in one feed.
+            jq --slurpfile arts "${RUNNER_TEMP}/artifacts.json" \
+               --arg ts "$TIMESTAMP" --arg repo "$REPO" --arg tag "$TAG" '
+              (($arts[0] | reverse) | map({
+                  version: .version,
+                  changelog: ("Release " + .version),
+                  targetAbi: .targetAbi,
+                  sourceUrl: ("https://github.com/" + $repo + "/releases/download/" + $tag + "/" + .zip),
+                  checksum: .checksum,
                   timestamp: $ts
-                }] + ([.[0].versions[] | select(.version != $v)]))' manifest.json > manifest.json.new
+                })) as $new
+              | ($new | map(.version)) as $newVersions
+              | .[0].versions = ($new + [.[0].versions[] | select(.version as $v | $newVersions | index($v) | not)])
+            ' manifest.json > manifest.json.new
             mv manifest.json.new manifest.json
 
             git add manifest.json

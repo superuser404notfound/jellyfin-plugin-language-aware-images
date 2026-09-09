@@ -26,6 +26,20 @@ Then *Catalog → Metadata → Language-Aware Images → Install*. Restart the s
 > drag **Language-Aware TMDB Images** to the top, otherwise the built-in
 > provider still wins.
 
+### Server compatibility
+
+Every release ships two builds from the same source, and Jellyfin picks the
+matching one for you. Nothing to choose at install time:
+
+| Your Jellyfin | Version you get | Runtime |
+| ------------- | --------------- | ------- |
+| 12.x          | `X.Y.Z.1`       | net10.0 |
+| 10.10 / 10.11 | `X.Y.Z.0`       | net8.0  |
+
+Both lines are built from every tag, so neither is a dead end. If you upgrade
+your server from 10.11 to 12, the plugin catalogue will offer `X.Y.Z.1` as an
+update to the `X.Y.Z.0` you have installed.
+
 ## Configuration
 
 *Admin → Plugins → Language-Aware Images*:

@@ -1,21 +1,52 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
-    <AssemblyVersion>0.9.0.0</AssemblyVersion>
-    <FileVersion>0.9.0.0</FileVersion>
     <RootNamespace>Jellyfin.Plugin.LanguageAwareImages</RootNamespace>
     <AssemblyName>Jellyfin.Plugin.LanguageAwareImages</AssemblyName>
+
+    <!-- Single source of truth for the release version. The fourth component
+         is NOT part of it: it is the server-line marker appended below. -->
+    <PluginVersion>1.0.0</PluginVersion>
+  </PropertyGroup>
+
+  <!--
+    One assembly per Jellyfin server line. The source compiles unchanged against
+    both package sets, so there are no #if branches; only the referenced
+    Jellyfin packages and the metadata differ.
+
+    PluginRevision is the fourth version component and encodes the line. Jellyfin's
+    InstallationManager keeps every manifest entry whose targetAbi <= the server
+    version and then takes the highest VersionNumber, so the newer line must sort
+    above the older one or a Jellyfin 12 server would install the net8.0 build.
+      1.0.0.0 -> targetAbi 10.10.0.0 -> filtered out on nothing, chosen on 10.10/10.11
+      1.0.0.1 -> targetAbi 12.0.0.0  -> filtered out below 12, chosen on 12+
+  -->
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net8.0'">
+    <JellyfinPackageVersion>10.10.7</JellyfinPackageVersion>
+    <PluginRevision>0</PluginRevision>
+    <PluginTargetAbi>10.10.0.0</PluginTargetAbi>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net10.0'">
+    <JellyfinPackageVersion>12.0.0</JellyfinPackageVersion>
+    <PluginRevision>1</PluginRevision>
+    <PluginTargetAbi>12.0.0.0</PluginTargetAbi>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(TargetFramework)' != ''">
+    <AssemblyVersion>$(PluginVersion).$(PluginRevision)</AssemblyVersion>
+    <FileVersion>$(AssemblyVersion)</FileVersion>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Jellyfin.Controller" Version="10.10.7">
+    <PackageReference Include="Jellyfin.Controller" Version="$(JellyfinPackageVersion)">
       <ExcludeAssets>runtime</ExcludeAssets>
     </PackageReference>
-    <PackageReference Include="Jellyfin.Model" Version="10.10.7">
+    <PackageReference Include="Jellyfin.Model" Version="$(JellyfinPackageVersion)">
       <ExcludeAssets>runtime</ExcludeAssets>
     </PackageReference>
     <PackageReference Include="TMDbLib" Version="3.0.0" />
