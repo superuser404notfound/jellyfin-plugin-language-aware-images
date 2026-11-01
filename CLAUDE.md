@@ -92,6 +92,7 @@ each gated to one Jellyfin entity type via `Supports`:
 - `LanguageAwareSeriesImageProvider` — Series: Primary/Backdrop/Logo
 - `LanguageAwareSeasonImageProvider` — Season: Primary only (TMDB has no season backdrops/logos)
 - `LanguageAwareEpisodeImageProvider` — Episode: Primary (still), title-matched
+- `LanguageAwareBoxSetImageProvider` — BoxSet (collections, including the ones the TMDb Box Sets plugin creates): Primary/Backdrop. TMDB collections have no `original_language`, so the original-language bucket uses the most common one among the collection's movies
 - `Plugin.cs` — registers config page; providers are auto-discovered by Jellyfin's DI.
 
 Providers set `Order = -1` (vs. the built-in TMDB provider's `0`) so their
