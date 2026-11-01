@@ -124,6 +124,13 @@
                             <span>Prefer textless logos over titled</span>
                         </label>
                     </div>
+
+                    <div class="checkboxContainer">
+                        <label>
+                            <input is="emby-checkbox" type="checkbox" id="IncludeNoLanguageForThumbs" />
+                            <span>Allow textless thumbs (last resort when no titled backdrop exists)</span>
+                        </label>
+                    </div>
                 </div>
 
                 <div class="verticalSection">
@@ -272,6 +279,7 @@
                         document.querySelector('#IncludeNoLanguageForPosters').checked = !!config.IncludeNoLanguageForPosters;
                         document.querySelector('#IncludeNoLanguageForBackdrops').checked = config.IncludeNoLanguageForBackdrops !== false;
                         document.querySelector('#IncludeNoLanguageForLogos').checked = config.IncludeNoLanguageForLogos !== false;
+                        document.querySelector('#IncludeNoLanguageForThumbs').checked = !!config.IncludeNoLanguageForThumbs;
                         document.querySelector('#PreferNoLanguageForPosters').checked = !!config.PreferNoLanguageForPosters;
                         document.querySelector('#PreferNoLanguageForBackdrops').checked = !!config.PreferNoLanguageForBackdrops;
                         document.querySelector('#PreferNoLanguageForLogos').checked = !!config.PreferNoLanguageForLogos;
@@ -303,6 +311,7 @@
                         config.IncludeNoLanguageForPosters = document.querySelector('#IncludeNoLanguageForPosters').checked;
                         config.IncludeNoLanguageForBackdrops = document.querySelector('#IncludeNoLanguageForBackdrops').checked;
                         config.IncludeNoLanguageForLogos = document.querySelector('#IncludeNoLanguageForLogos').checked;
+                        config.IncludeNoLanguageForThumbs = document.querySelector('#IncludeNoLanguageForThumbs').checked;
                         config.PreferNoLanguageForPosters = document.querySelector('#PreferNoLanguageForPosters').checked;
                         config.PreferNoLanguageForBackdrops = document.querySelector('#PreferNoLanguageForBackdrops').checked;
                         config.PreferNoLanguageForLogos = document.querySelector('#PreferNoLanguageForLogos').checked;

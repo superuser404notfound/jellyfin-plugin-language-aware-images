@@ -23,6 +23,11 @@ public class PluginConfiguration : BasePluginConfiguration
 
     public bool IncludeNoLanguageForLogos { get; set; } = true;
 
+    // Thumbs are TMDB backdrops that carry a language tag, i.e. have the title
+    // burned in, the same split Jellyfin's built-in provider makes. A textless
+    // backdrop is only offered as a thumb, and then dead-last, when this is on.
+    public bool IncludeNoLanguageForThumbs { get; set; } = false;
+
     // When the matching IncludeNoLanguageFor* toggle is on, rank textless
     // (no-language-tag) images at the very top of the bucket order (above the
     // preferred language) instead of dead-last. Off (default) keeps textless as

@@ -32,7 +32,7 @@ public abstract class LanguageAwareImageProviderBase : IHasOrder
         var size = type switch
         {
             ImageType.Primary => Config.PosterImageSize,
-            ImageType.Backdrop => Config.BackdropImageSize,
+            ImageType.Backdrop or ImageType.Thumb => Config.BackdropImageSize,
             ImageType.Logo => Config.LogoImageSize,
             _ => "original"
         };
@@ -129,6 +129,7 @@ public abstract class LanguageAwareImageProviderBase : IHasOrder
         ImageType.Primary => Config.IncludeNoLanguageForPosters,
         ImageType.Backdrop => Config.IncludeNoLanguageForBackdrops,
         ImageType.Logo => Config.IncludeNoLanguageForLogos,
+        ImageType.Thumb => Config.IncludeNoLanguageForThumbs,
         _ => false
     };
 
@@ -143,7 +144,8 @@ public abstract class LanguageAwareImageProviderBase : IHasOrder
     protected static bool AnyTextlessAllowed() =>
         Config.IncludeNoLanguageForPosters
         || Config.IncludeNoLanguageForBackdrops
-        || Config.IncludeNoLanguageForLogos;
+        || Config.IncludeNoLanguageForLogos
+        || Config.IncludeNoLanguageForThumbs;
 
     // True if any feature requires us to fetch the title's original_language
     // from TMDB. OnlyOriginalLanguageForPosters implies it.
@@ -162,6 +164,7 @@ public abstract class LanguageAwareImageProviderBase : IHasOrder
         ImageType.Primary => images.Posters,
         ImageType.Backdrop => images.Backdrops,
         ImageType.Logo => images.Logos,
+        ImageType.Thumb => images.Backdrops,
         _ => null
     };
 

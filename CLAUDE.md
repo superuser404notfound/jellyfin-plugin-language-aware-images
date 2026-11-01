@@ -88,11 +88,12 @@ the values sitting in git are the `net8.0` ones and are not authoritative.
 Five `IRemoteImageProvider`s, all subclassing `LanguageAwareImageProviderBase`,
 each gated to one Jellyfin entity type via `Supports`:
 
-- `LanguageAwareMovieImageProvider` — Movie: Primary/Backdrop/Logo
-- `LanguageAwareSeriesImageProvider` — Series: Primary/Backdrop/Logo
+- `LanguageAwareMovieImageProvider` — Movie: Primary/Backdrop/Logo/Thumb
+- `LanguageAwareSeriesImageProvider` — Series: Primary/Backdrop/Logo/Thumb
 - `LanguageAwareSeasonImageProvider` — Season: Primary only (TMDB has no season backdrops/logos)
 - `LanguageAwareEpisodeImageProvider` — Episode: Primary (still), title-matched
-- `LanguageAwareBoxSetImageProvider` — BoxSet (collections, including the ones the TMDb Box Sets plugin creates): Primary/Backdrop. TMDB collections have no `original_language`, so the original-language bucket uses the most common one among the collection's movies
+- `LanguageAwareBoxSetImageProvider` — BoxSet (collections, including the ones the TMDb Box Sets plugin creates): Primary/Backdrop/Thumb. TMDB collections have no `original_language`, so the original-language bucket uses the most common one among the collection's movies
+- **Thumb** is not a TMDB image type. Like Jellyfin's built-in provider it is a backdrop that carries a language tag (title burned in), so `SelectType` serves it from the same backdrop list, no extra TMDB call, and textless backdrops only reach it via `IncludeNoLanguageForThumbs` (dead-last, no "prefer" variant). Language-tagged backdrops stay in the Backdrop list too, unlike the built-in provider.
 - `Plugin.cs` — registers config page; providers are auto-discovered by Jellyfin's DI.
 
 Providers set `Order = -1` (vs. the built-in TMDB provider's `0`) so their

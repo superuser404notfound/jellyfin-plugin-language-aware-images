@@ -12,7 +12,9 @@ issues out of the way:
 
 Movies, series, seasons, episodes and collections (box sets, including the ones
 the [TMDb Box Sets](https://github.com/jellyfin/jellyfin-plugin-tmdbboxsets)
-plugin creates) are covered.
+plugin creates) are covered, with every image type TMDB has: posters, backdrops,
+logos, thumbs (landscape art with the title in it) and episode stills. TMDB has
+no banners or disc art, keep Fanart or TVDB enabled below this plugin for those.
 
 > Also from the same dev: [Sodalite](https://github.com/superuser404notfound/Sodalite), a native Apple TV client for Jellyfin with first-class Jellyseerr integration ([TestFlight beta](https://testflight.apple.com/join/nWeQzmBX)). Built on [AetherEngine](https://github.com/superuser404notfound/AetherEngine), a reusable video player engine for iOS, tvOS and macOS.
 
@@ -58,6 +60,7 @@ update to the `X.Y.Z.0` you have installed.
 | `IncludeNoLanguageForPosters`    | `false` | Allow textless posters as last resort.                                         |
 | `IncludeNoLanguageForBackdrops`  | `true`  | Backdrops are usually language-agnostic anyway.                                |
 | `IncludeNoLanguageForLogos`      | `true`  | Most studio logos are designed without text.                                   |
+| `IncludeNoLanguageForThumbs`     | `false` | Thumbs are TMDB backdrops with the title in them (the built-in provider's split). On = a textless backdrop fills in, dead-last, when there is no titled one. |
 | `PreferNoLanguageForPosters`     | `false` | Rank textless posters above titled art. Needs `IncludeNoLanguageForPosters`.   |
 | `PreferNoLanguageForBackdrops`   | `false` | Rank textless backdrops first (clean, no burned-in title). Needs `IncludeNoLanguageForBackdrops`. |
 | `PreferNoLanguageForLogos`       | `false` | Rank textless logos first. Needs `IncludeNoLanguageForLogos`.                  |
@@ -65,7 +68,7 @@ update to the `X.Y.Z.0` you have installed.
 | `MinimumVoteCount`               |   `0`   | Drops images with fewer votes. `0` = keep everything (recommended).            |
 | `MatchEpisodeImagesByTitle`      | `true`  | Episode images by title-lookup, not by (S,E) position. Fixes alternative-order shows. |
 | `PosterImageSize`                | `original` | TMDB poster size: w92, w154, w185, w342, w500, w780, original.            |
-| `BackdropImageSize`              | `original` | TMDB backdrop size: w300, w780, w1280, original.                          |
+| `BackdropImageSize`              | `original` | TMDB backdrop size: w300, w780, w1280, original. Also used for thumbs.   |
 | `LogoImageSize`                  | `original` | TMDB logo size: w45, w92, w154, w185, w300, w500, original.               |
 | `StillImageSize`                 | `original` | TMDB episode still size: w92, w185, w300, original.                       |
 | `TmdbApiKey`                     | empty   | Bring your own TMDB key. Empty = uses Jellyfin's bundled key.                  |

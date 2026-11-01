@@ -23,7 +23,8 @@ public class LanguageAwareSeriesImageProvider : LanguageAwareImageProviderBase, 
     {
         ImageType.Primary,
         ImageType.Backdrop,
-        ImageType.Logo
+        ImageType.Logo,
+        ImageType.Thumb
     };
 
     public async Task<IEnumerable<RemoteImageInfo>> GetImages(BaseItem item, CancellationToken cancellationToken)
@@ -50,7 +51,7 @@ public class LanguageAwareSeriesImageProvider : LanguageAwareImageProviderBase, 
 
         return await FetchRankMapAsync(
             item,
-            new[] { ImageType.Primary, ImageType.Backdrop, ImageType.Logo },
+            new[] { ImageType.Primary, ImageType.Backdrop, ImageType.Logo, ImageType.Thumb },
             originalLanguage,
             async (include, ct) =>
             {

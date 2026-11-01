@@ -26,7 +26,8 @@ public class LanguageAwareBoxSetImageProvider : LanguageAwareImageProviderBase, 
     public IEnumerable<ImageType> GetSupportedImages(BaseItem item) => new[]
     {
         ImageType.Primary,
-        ImageType.Backdrop
+        ImageType.Backdrop,
+        ImageType.Thumb
     };
 
     public async Task<IEnumerable<RemoteImageInfo>> GetImages(BaseItem item, CancellationToken cancellationToken)
@@ -61,7 +62,7 @@ public class LanguageAwareBoxSetImageProvider : LanguageAwareImageProviderBase, 
 
         return await FetchRankMapAsync(
             item,
-            new[] { ImageType.Primary, ImageType.Backdrop },
+            new[] { ImageType.Primary, ImageType.Backdrop, ImageType.Thumb },
             originalLanguage,
             async (include, ct) =>
             {
